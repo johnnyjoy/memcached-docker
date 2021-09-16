@@ -1,0 +1,76 @@
+diff --git memcached.c memcached.c
+index b1d5144..f36d224 100644
+--- memcached.c
++++ memcached.c
+@@ -4689,6 +4689,71 @@ int main (int argc, char **argv) {
+     /* set stderr non-buffering (for running under, say, daemontools) */
+     setbuf(stderr, NULL);
+ 
++    /* Container friendly environment variable configuration. Overriden by
++     * command line options should both be supplied.
++     */
++    char *envtmp;
++
++    /* Max memory */
++    envtmp = getenv("MC_MAX");
++    if (envtmp) {
++            settings.maxbytes = ((size_t)atoi(envtmp)) * 1024 * 1024;
++            if (settings.maxbytes <= 0) {
++                    fprintf(stderr, "MC_MAX must be greater than zero.\n");
++                    exit(EX_USAGE);
++            }
++    }
++    /* TLS */
++    envtmp = getenv("MC_TLS");
++    if (envtmp) {
++#ifdef TLS
++            settings.ssl_enabled = true;
++#else
++            fprintf(stderr, "This server is not built with TLS support.\n");
++            exit(EX_USAGE);
++#endif
++    }
++    /* Maximum connections */
++    envtmp = getenv("MC_CONNECTIONS");
++    if (envtmp) {
++            settings.maxconns = atoi(envtmp);
++            if (settings.maxconns <= 0) {
++                fprintf(stderr, "MC_CONNECTIONS must be greater than 0\n");
++                    exit(EX_USAGE);
++            }
++    }
++    /* Maximum connections */
++    envtmp = getenv("MC_TREADS");
++    if (envtmp) {
++            settings.num_threads = atoi(envtmp);
++            if (settings.num_threads <= 0) {
++                fprintf(stderr, "MC_TREADS must be greater than 0\n");
++                    exit(EX_USAGE);
++            }
++            /* There're other problems when you get above 64 threads.
++             * In the future we should portably detect # of cores for the
++             * default.
++             */
++            if (settings.num_threads > 64) {
++                fprintf(stderr, "WARNING: Setting a high number of worker"
++                                "threads is not recommended.\n"
++                                " Set this value to the number of cores in"
++                                " your machine or less.\n");
++            }
++    }
++    /* Port setting */
++    envtmp = getenv("MC_PORT");
++    if (envtmp) {
++            settings.port = atoi(envtmp);
++
++            if (settings.port <= 1024 && (getuid() > 0 && geteuid() > 0)) {
++                fprintf(stderr, "MC_PORT must be greater than 1024 for "
++                                "non-root users.\n");
++                    exit(EX_USAGE);
++            }
++            tcp_specified = true;
++    }
++
+     char *shortopts =
+           "a:"  /* access mask for unix socket */
+           "A"   /* enable admin shutdown command */
