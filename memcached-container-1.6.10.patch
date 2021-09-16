@@ -1,5 +1,5 @@
 diff --git memcached.c memcached.c
-index b1d5144..f36d224 100644
+index b1d5144..0df0173 100644
 --- memcached.c
 +++ memcached.c
 @@ -4689,6 +4689,71 @@ int main (int argc, char **argv) {
@@ -22,7 +22,7 @@ index b1d5144..f36d224 100644
 +    }
 +    /* TLS */
 +    envtmp = getenv("MC_TLS");
-+    if (envtmp) {
++    if (strcmp(envtmp, "true") == 0) {
 +#ifdef TLS
 +            settings.ssl_enabled = true;
 +#else
