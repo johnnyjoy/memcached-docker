@@ -1,10 +1,6 @@
 FROM alpine:3 AS build
 
-# Memcahced args
-ARG MEM=64
-ARG MASK=0700
-ARG CONNECTIONS=1024
-ARG THREADS=4
+# Todo: Patch memcached to use environment variables for configuration
 
 ARG VERSION="1.6.10"
 ARG CHECKSUM="ef46ac33c55d3a0f1c5ae8eb654677d84669913997db5d0c422c5eaffd694a92"
