@@ -21,7 +21,7 @@ LABEL maintainer="James Dornan <james@catch22.com>" \
       com.catch22.project.repo.type="git" \
       com.catch22.project.repo.uri="https://notabug.org/jjb/memcached" \
       com.catch22.project.repo.issues="https://notabug.org/jjb/memcached/issues" \
-      com.catch22.app.memcached.version="${VERSION}"
+      com.catch22.app.memcached.version="1.6.10"
 
 ADD https://www.memcached.org/files/memcached-$VERSION.tar.gz /tmp/memcached.tar.gz
 ADD https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz /tmp/openssl.tar.gz
