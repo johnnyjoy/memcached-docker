@@ -24,11 +24,11 @@ ADD https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz /tmp/openssl.
 ADD https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz /tmp/libevent.tar.gz
 
 RUN \
-	[ "$(sha256sum /tmp/openssl.tar.gz | awk '{print $1}')" = "$OPENSSL_CHECKSUM" ] \
+	[ "$(sha256sum /tmp/openssl.tar.gz | cut -f1 -d' ')" = "$OPENSSL_CHECKSUM" ] \
 	&& \
-	[ "$(sha256sum /tmp/libevent.tar.gz | awk '{print $1}')" = "$LIBEVENT_CHECKSUM" ] \
+	[ "$(sha256sum /tmp/libevent.tar.gz | cut -f1 -d' ')" = "$LIBEVENT_CHECKSUM" ] \
 	&& \
-	[ "$(sha256sum /tmp/memcached.tar.gz | awk '{print $1}')" = "$CHECKSUM" ] \
+	[ "$(sha256sum /tmp/memcached.tar.gz | cut -f1 -d' ')" = "$CHECKSUM" ] \
 	&& \
 	apk add gcc linux-headers make musl-dev perl \
 	&& \
@@ -64,21 +64,19 @@ RUN \
 	make LDFLAGS="-static" -j $(nproc)
 
 RUN \
-	mkdir -p /rootfs/bin \
+	mkdir /rootfs \
 	&& \
-	cp /tmp/memcached-$VERSION/memcached /rootfs/ \
+	cd /rootfs \
 	&& \
-	ls -l /rootfs/memcached \
+	cp /tmp/memcached-$VERSION/memcached ./ \
 	&& \
-	strip /rootfs/memcached \
+	strip memcached \
 	&& \
-	ls -l /rootfs/memcached \
+	mkdir etc \
 	&& \
-	mkdir -p /rootfs/etc \
+	echo "nogroup:*:10000:nobody" > etc/group \
 	&& \
-	echo "nogroup:*:10000:nobody" > /rootfs/etc/group \
-	&& \
-	echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd
+	echo "nobody:*:10000:10000:::" > etc/passwd
 
 FROM scratch
 
@@ -86,5 +84,4 @@ COPY --from=build --chown=10000:10000 /rootfs /
 
 USER 10000:10000
 EXPOSE 11211/tcp
-# ENTRYPOINT ["/memcached"]
 ENTRYPOINT ["/memcached", "-m", "64", "-t", "4", "-c", "1024", "-a", "0700"]
