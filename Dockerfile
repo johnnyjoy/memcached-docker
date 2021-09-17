@@ -31,7 +31,7 @@ LABEL \
 ADD https://www.memcached.org/files/memcached-$VERSION.tar.gz /tmp/memcached.tar.gz
 ADD https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz /tmp/openssl.tar.gz
 ADD https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz /tmp/libevent.tar.gz
-COPY memcached-container-1.6.10.patch /tmp/
+COPY memcached-container-$VERSION.patch /tmp/
 
 RUN \
 	[ "$(sha256sum /tmp/openssl.tar.gz | cut -f1 -d' ')" = "$OPENSSL_CHECKSUM" ] \
@@ -69,7 +69,7 @@ RUN \
 RUN \
 	cd /tmp/memcached-$VERSION \
 	&& \
-	patch -p0 < /tmp/memcached-container-1.6.10.patch \
+	patch -p0 < /tmp/memcached-container-$VERSION.patch \
 	&& \
 	./configure \
 	&& \
