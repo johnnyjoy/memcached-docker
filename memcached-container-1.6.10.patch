@@ -1,8 +1,8 @@
 diff --git memcached.c memcached.c
-index b1d5144..0df0173 100644
+index b1d5144..e685d5f 100644
 --- memcached.c
 +++ memcached.c
-@@ -4689,6 +4689,71 @@ int main (int argc, char **argv) {
+@@ -4689,6 +4689,101 @@ int main (int argc, char **argv) {
      /* set stderr non-buffering (for running under, say, daemontools) */
      setbuf(stderr, NULL);
  
@@ -10,6 +10,13 @@ index b1d5144..0df0173 100644
 +     * command line options should both be supplied.
 +     */
 +    char *envtmp;
++
++    /* Show License */
++    envtmp = getenv("MC_LICENSE");
++    if (envtmp) {
++	    usage_license();
++	    exit(EXIT_SUCCESS);
++    }
 +
 +    /* Max memory */
 +    envtmp = getenv("MC_MAX");
@@ -25,6 +32,29 @@ index b1d5144..0df0173 100644
 +    if (strcmp(envtmp, "true") == 0) {
 +#ifdef TLS
 +            settings.ssl_enabled = true;
++
++            envtmp = getenv("MC_TLS_CERT");
++            if (envtmp == NULL) {
++                fprintf(stderr, "Missing MC_TLS_CERT argument\n");
++                return 1;
++            }
++            settings.ssl_chain_cert = envtmp;
++
++            envtmp = getenv("MC_TLS_KEY");
++            if (envtmp == NULL) {
++                fprintf(stderr, "Missing MC_TLS_KEY argument\n");
++                return 1;
++            }
++            settings.ssl_key = envtmp;
++
++            envtmp = getenv("MC_TLS_CA");
++            if (envtmp != NULL) {
++		if (strlen(envtmp) < 1 ) {
++                    fprintf(stderr, "Missing MC_TLS_CA argument\n");
++                    return 1;
++		}
++                settings.ssl_ca_cert = strdup(subopts_value);
++            }
 +#else
 +            fprintf(stderr, "This server is not built with TLS support.\n");
 +            exit(EX_USAGE);

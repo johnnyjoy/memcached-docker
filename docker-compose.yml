@@ -1,0 +1,14 @@
+# vim: set expandtab tabstop=2 shiftwidth=2 softtabstop=2:
+version: '3'
+
+services:
+  memcached:
+    environment:
+      - MC_MAX=64
+      - MC_CONNECTIONS=1024
+      - MC_TREADS=4
+      - MC_TLS=true
+      - MC_PORT=11211
+    image: docker.io/tigersmile/memcached:1.6.10
+    ports:
+      - '11211:11211'
