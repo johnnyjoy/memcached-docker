@@ -74,7 +74,7 @@ COPY memcached-container-1.6.10.patch /tmp/
 RUN \
 	cd /tmp/memcached-$VERSION \
 	&& \
-	patch -p0 < /tmp/memcached-container-1.6.10.patch \
+	patch -p0 < /tmp/memcached-container-$VERSION.patch \
 	&& \
 	./configure --enable-tls --enable-threads --enable-static \
 	&& \
