@@ -83,15 +83,15 @@ RUN \
 RUN \
 	mkdir -p /rootfs/etc \
 	&& \
-	cd /rootfs \
-	&& \
-	cp /tmp/memcached-$VERSION/memcached /tmp/memcached-$VERSION/LICENSE ./ \
+	cd /tmp/memcached-$VERSION \
 	&& \
 	strip memcached \
 	&& \
-	echo "nogroup:*:10000:nobody" > etc/group \
+	cp memcached COPYING LICENSE.bipbuffer /rootfs/ \
 	&& \
-	echo "nobody:*:10000:10000:::" > etc/passwd
+	echo "nogroup:*:10000:nobody" > /rootfs/etc/group \
+	&& \
+	echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd
 
 FROM scratch
 
