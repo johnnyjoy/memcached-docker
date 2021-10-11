@@ -9,6 +9,6 @@ services:
       - MC_TREADS=4
       - MC_TLS=true
       - MC_PORT=11211
-    image: docker.io/tigersmile/memcached:1.6.10
+    image: docker.io/tigersmile/memcachedtls
     ports:
       - '11211:11211'

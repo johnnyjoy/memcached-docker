@@ -17,9 +17,7 @@ LABEL \
 ENV \
 	MC_MAX=64 \
 	MC_CONNECTIONS=1024 \
-	MC_TREADS=4 \
-	MC_TLS=true \
-	MC_PORT=11211
+	MC_TREADS=4
 
 ARG VERSION="1.6.10"
 ARG CHECKSUM="ef46ac33c55d3a0f1c5ae8eb654677d84669913997db5d0c422c5eaffd694a92"
@@ -30,16 +28,32 @@ ARG OPENSSL_CHECKSUM="892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33
 ARG LIBEVENT_VERSION="2.1.12-stable"
 ARG LIBEVENT_CHECKSUM="92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb"
 
-ADD https://www.memcached.org/files/memcached-$VERSION.tar.gz /tmp/memcached.tar.gz
-ADD https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz /tmp/openssl.tar.gz
-ADD https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz /tmp/libevent.tar.gz
+ARG SASL_VERSION="2.1.27"
+ARG SASL_CHECKSUM="26866b1549b00ffd020f188a43c258017fa1c382b3ddadd8201536f72efb05d5"
+
+ARG ENABLETLS="false"
 
 RUN \
-	[ "$(sha256sum /tmp/openssl.tar.gz | cut -f1 -d' ')" = "$OPENSSL_CHECKSUM" ] \
+	wget -S -O /tmp/memcached.tar.gz \
+		https://www.memcached.org/files/memcached-$VERSION.tar.gz \
 	&& \
-	[ "$(sha256sum /tmp/libevent.tar.gz | cut -f1 -d' ')" = "$LIBEVENT_CHECKSUM" ] \
+	wget -S -O /tmp/openssl.tar.gz \
+		https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz \
 	&& \
-	[ "$(sha256sum /tmp/memcached.tar.gz | cut -f1 -d' ')" = "$CHECKSUM" ] \
+	wget -S -O /tmp/sasl.tar.gz \
+		https://github.com/cyrusimap/cyrus-sasl/releases/download/cyrus-sasl-$SASL_VERSION/cyrus-sasl-$SASL_VERSION.tar.gz \
+	&& \
+	wget -S -O /tmp/libevent.tar.gz \
+		https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz
+
+RUN \
+	[ "$(sha256sum < /tmp/openssl.tar.gz)" = "$OPENSSL_CHECKSUM  -" ] \
+	&& \
+	[ "$(sha256sum < /tmp/libevent.tar.gz)" = "$LIBEVENT_CHECKSUM  -" ] \
+	&& \
+	[ "$(sha256sum < /tmp/sasl.tar.gz)" = "$SASL_CHECKSUM  -" ] \
+	&& \
+	[ "$(sha256sum < /tmp/memcached.tar.gz)" = "$CHECKSUM  -" ] \
 	&& \
 	apk update \
 	&& \
@@ -49,21 +63,32 @@ RUN \
 	&& \
 	tar -C /tmp -xf /tmp/libevent.tar.gz \
 	&& \
+	tar -C /tmp -xf /tmp/sasl.tar.gz \
+	&& \
 	tar -C /tmp -xf /tmp/memcached.tar.gz
 
+WORKDIR /tmp/openssl-$OPENSSL_VERSION
+
 RUN \
-	cd /tmp/openssl-$OPENSSL_VERSION \
-	&& \
 	./config no-shared \
 	&& \
 	make -j $(nproc) \
 	&& \
 	make install_sw
 
+WORKDIR /tmp/libevent-$LIBEVENT_VERSION
+
 RUN \
-	cd /tmp/libevent-$LIBEVENT_VERSION \
-	&& \
 	./configure \
+	&& \
+	make -j $(nproc) \
+	&& \
+	make install
+
+WORKDIR /tmp/cyrus-sasl-$SASL_VERSION
+
+RUN \
+	./configure --without-openssl --disable-digest --enable-static --disable-shared --prefix=/usr  --enable-auth-sasldb --sysconfdir=/etc \
 	&& \
 	make -j $(nproc) \
 	&& \
@@ -71,23 +96,25 @@ RUN \
 
 COPY memcached-container-1.6.10.patch /tmp/
 
+WORKDIR /tmp/memcached-$VERSION
+
 RUN \
-	cd /tmp/memcached-$VERSION \
-	&& \
 	patch -p0 < /tmp/memcached-container-$VERSION.patch \
 	&& \
-	./configure --enable-tls --enable-threads --enable-static \
+	if [ $ENABLETLS  = "true" ]; then \
+	  ./configure --with-libevent --enable-tls --enable-sasl --enable-sasl-pwdb; \
+	else \
+	  ./configure --with-libevent; \
+	fi \
 	&& \
 	make LDFLAGS="-static" -j $(nproc)
 
 RUN \
 	mkdir -p /rootfs/etc \
 	&& \
-	cd /tmp/memcached-$VERSION \
-	&& \
-	strip memcached \
-	&& \
 	cp memcached COPYING LICENSE.bipbuffer /rootfs/ \
+	&& \
+	strip /rootfs/memcached \
 	&& \
 	echo "nogroup:*:10000:nobody" > /rootfs/etc/group \
 	&& \

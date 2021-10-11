@@ -6,4 +6,6 @@ if [ $# -eq 0 ]
     tag=$1
 fi
 
-docker build -t tigersmile/memcached:$tag .
+#docker build -t tigersmile/memcached:$tag . \
+#  && \
+  docker build --build-arg ENABLETLS="true" -t tigersmile/memcachedtls:$tag .
