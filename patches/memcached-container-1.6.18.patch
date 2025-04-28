@@ -53,7 +53,7 @@ index b1d5144..6c0b650 100644
 +                    fprintf(stderr, "Missing MC_TLS_CA argument\n");
 +                    return 1;
 +		}
-+                settings.ssl_ca_cert = strdup(subopts_value);
++               settings.ssl_ca_cert = strdup(envtmp);
 +            }
 +#else
 +            fprintf(stderr, "This server is not built with TLS support.\n");
@@ -70,7 +70,7 @@ index b1d5144..6c0b650 100644
 +            }
 +    }
 +    /* Maximum connections */
-+    envtmp = getenv("MC_TREADS");
++    envtmp = getenv("MC_THREADS");
 +    if (envtmp) {
 +            settings.num_threads = atoi(envtmp);
 +            if (settings.num_threads <= 0) {
