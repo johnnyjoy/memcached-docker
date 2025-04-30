@@ -1,0 +1,6 @@
+.git
+.cache
+Dockerfile
+Makefile
+docker-compose.yml
+tests
