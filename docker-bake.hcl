@@ -55,6 +55,7 @@ target "tls" {
     "tigersmile/memcached:tls"
   ]
   platforms = [
+    "linux/386",
     "linux/amd64",
     "linux/arm/v6",
     "linux/arm/v7",
@@ -76,6 +77,7 @@ target "full" {
     "tigersmile/memcached:latest"
   ]
   platforms = [
+    "linux/386",
     "linux/amd64",
     "linux/arm/v6",
     "linux/arm/v7",
