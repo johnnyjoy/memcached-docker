@@ -3,7 +3,7 @@
 ################################################################################
 # Global build‐args (available in all stages)
 ################################################################################
-ARG VERSION="1.6.38"
+ARG MEMCACHED_VERSION="1.6.38"
 ARG OPENSSL_VERSION="3.5.0"
 ARG LIBEVENT_VERSION="2.2.1-alpha"
 ARG SASL_VERSION="2.1.28"
@@ -40,12 +40,12 @@ ARG OPENSSL_CHECKSUM="344d0a79f1a9b08029b0744e2cc401a43f9c90acd1044d09a530b4885a
 ARG LIBEVENT_CHECKSUM="86ca388821e81d960c696d52a29631bbeda153f0b12edae9c8f844cd61c79776"
 ARG SASL_CHECKSUM="7ccfc6abd01ed67c1a0924b353e526f1b766b21f42d4562ee635a8ebfc5bb38c"
 
-ARG VERSION OPENSSL_VERSION LIBEVENT_VERSION SASL_VERSION
+ARG MEMCACHED_VERSION OPENSSL_VERSION LIBEVENT_VERSION SASL_VERSION
 
 WORKDIR /build
 RUN \
     wget -O memcached.tar.gz \
-        https://www.memcached.org/files/memcached-${VERSION}.tar.gz && \
+        https://www.memcached.org/files/memcached-${MEMCACHED_VERSION}.tar.gz && \
     wget -O openssl.tar.gz \
         https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz && \
     wget -O libevent.tar.gz \
@@ -56,9 +56,9 @@ RUN \
 RUN \
     printf "%s %s\n" \
         "${MEMCACHED_CHECKSUM}" "memcached.tar.gz" \
-        "${OPENSSL_CHECKSUM}"   "openssl.tar.gz" \
-        "${LIBEVENT_CHECKSUM}"  "libevent.tar.gz" \
-        "${SASL_CHECKSUM}"      "sasl.tar.gz" \
+        "${OPENSSL_CHECKSUM}"   "openssl.tar.gz"   \
+        "${LIBEVENT_CHECKSUM}"  "libevent.tar.gz"  \
+        "${SASL_CHECKSUM}"      "sasl.tar.gz"      \
     | sha256sum -c -
 
 RUN tar -xzf memcached.tar.gz && \
@@ -66,12 +66,9 @@ RUN tar -xzf memcached.tar.gz && \
     tar -xzf libevent.tar.gz  && \
     tar -xzf sasl.tar.gz
 
-WORKDIR /build/memcached-${VERSION}
-RUN sed -i 's|SSL_get_peer_certificate|SSL_get1_peer_certificate|g' tls.c
-
-WORKDIR /build/cyrus-sasl-${SASL_VERSION}
-RUN sed '/saslint/a #include <time.h>' -i lib/saslutil.c && \
-    sed '/plugin_common/a #include <time.h>' -i plugins/cram.c
+RUN sed -i 's|SSL_get_peer_certificate|SSL_get1_peer_certificate|g' /build/memcached-${MEMCACHED_VERSION}/tls.c && \
+    sed -i '/saslint/a #include <time.h>'                           /build/cyrus-sasl-${SASL_VERSION}/lib/saslutil.c && \
+    sed -i '/plugin_common/a #include <time.h>'                     /build/cyrus-sasl-${SASL_VERSION}/plugins/cram.c
 
 ################################################################################
 # Stage 2: build tools + shared deps
@@ -79,7 +76,7 @@ RUN sed '/saslint/a #include <time.h>' -i lib/saslutil.c && \
 FROM alpine:edge AS build-deps
 
 # Re-export the flags so they’re in ENV here
-ARG VERSION LIBEVENT_VERSION OPENSSL_VERSION
+ARG MEMCACHED_VERSION LIBEVENT_VERSION OPENSSL_VERSION
 ARG CFLAGS LDFLAGS CPPFLAGS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
@@ -102,6 +99,10 @@ COPY patches /patches
 
 # Copy in sources
 COPY --from=fetch /build /build
+
+# Patch memcached to support environment variables
+WORKDIR /build/memcached-${MEMCACHED_VERSION}
+RUN patch -p0 < /patches/memcached/${MEMCACHED_VERSION}/env-args.patch
 
 WORKDIR /build/libevent-release-${LIBEVENT_VERSION}
 RUN cmake -D CMAKE_INSTALL_PREFIX=/usr \
@@ -128,7 +129,25 @@ RUN cmake -D CMAKE_INSTALL_PREFIX=/usr \
 
 # OpenSSL (static)
 WORKDIR /build/openssl-${OPENSSL_VERSION}
-RUN ./config \
+
+ARG TARGETARCH
+ENV TARGETARCH=${TARGETARCH}
+ARG TARGETPLATFORM
+ENV TARGETPLATFORM=${TARGETPLATFORM}
+
+RUN case "$TARGETPLATFORM" in \
+      "linux/amd64")   CONF=linux-x86_64 ;;  \
+      "linux/386")     CONF=linux-x86 ;;     \
+      "linux/arm/v6")  CONF=linux-armv4 ;;   \
+      "linux/arm/v7")  CONF=linux-armv4 ;;   \
+      "linux/arm64")   CONF=linux-aarch64 ;; \
+      "linux/ppc64le") CONF=linux-ppc64le ;; \
+      "linux/s390x")   CONF=linux64-s390x ;; \
+      "linux/riscv64") CONF=linux-riscv64 ;; \
+      *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac && \
+    echo "Configuring for $CONF" && \
+    ./Configure ${CONF} \
         --prefix=/usr \
         no-cms \
         no-md2 \
@@ -169,14 +188,12 @@ RUN ./config \
 FROM build-deps AS build-micro
 
 # Re-export the flags so they’re in ENV here
-ARG VERSION LIBEVENT_VERSION
+ARG MEMCACHED_VERSION LIBEVENT_VERSION
 ARG CFLAGS LDFLAGS CPPFLAGS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
-WORKDIR /build/memcached-${VERSION}
-
-RUN patch -p0 < /patches/memcached/${VERSION}/micro.patch && \
-    ./configure \
+WORKDIR /build/memcached-${MEMCACHED_VERSION}
+RUN ./configure \
         --disable-sasl \
         --disable-extstore \
         --disable-docs \
@@ -193,14 +210,12 @@ RUN patch -p0 < /patches/memcached/${VERSION}/micro.patch && \
 FROM build-deps AS build-slim
 
 # Re-export the flags so they’re in ENV here
-ARG VERSION
+ARG MEMCACHED_VERSION
 ARG CFLAGS LDFLAGS CPPFLAGS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
-WORKDIR /build/memcached-${VERSION}
-
-RUN patch -p0 < /patches/memcached/${VERSION}/slim.patch && \
-    ./configure \
+WORKDIR /build/memcached-${MEMCACHED_VERSION}
+RUN ./configure \
         --with-libevent=/usr \
         --disable-sasl \
         --disable-docs \
@@ -216,15 +231,13 @@ RUN patch -p0 < /patches/memcached/${VERSION}/slim.patch && \
 ################################################################################
 FROM build-deps AS build-tls
 
-ARG VERSION
+ARG MEMCACHED_VERSION
 ARG CFLAGS LDFLAGS CPPFLAGS LIBS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
 # Memcached (only the daemon, patched for OpenSSL3)
-WORKDIR /build/memcached-${VERSION}
-
-RUN patch -p0 < /patches/memcached/${VERSION}/full.patch && \
-    LIBS="-lcrypto -lssl" ./configure \
+WORKDIR /build/memcached-${MEMCACHED_VERSION}
+RUN LIBS="-lcrypto -lssl" ./configure \
         --with-libevent=/usr \
         --disable-docs \
         --disable-dtrace \
@@ -238,7 +251,7 @@ RUN patch -p0 < /patches/memcached/${VERSION}/full.patch && \
 ################################################################################
 FROM build-deps AS build-full
 
-ARG VERSION SASL_VERSION
+ARG MEMCACHED_VERSION SASL_VERSION
 ARG CFLAGS LDFLAGS CPPFLAGS LIBS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
@@ -271,10 +284,8 @@ RUN LIBS="-lcrypto" ./configure \
     make -j1 install
 
 # Memcached (only the daemon, patched for OpenSSL3)
-WORKDIR /build/memcached-${VERSION}
-
-RUN patch -p0 < /patches/memcached/${VERSION}/full.patch && \
-    LIBS="-lcrypto -lssl" ./configure \
+WORKDIR /build/memcached-${MEMCACHED_VERSION}
+RUN LIBS="-lcrypto -lssl" ./configure \
         --with-libevent=/usr \
         --disable-docs \
         --disable-dtrace \

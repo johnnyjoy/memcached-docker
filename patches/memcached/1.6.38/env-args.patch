@@ -1,0 +1,194 @@
+--- memcached.c.orig	2025-04-24 14:38:45.912822441 -0400
++++ memcached.c	2025-04-30 12:17:45.066971406 -0400
+@@ -166,6 +166,179 @@
+     }
+ }
+ 
++/**
++ * Docker-friendly environment-based configuration injector for memcached.
++ *
++ * This function transforms MEMCACHED_* environment variables into equivalent
++ * command-line arguments for memcached, allowing full runtime configuration
++ * without the need to pass CLI options manually. This is particularly useful
++ * in containerized environments where command-line arguments are static or discouraged.
++ *
++ * - Standard options like -m, -c, -t are mapped via environment variables
++ *   such as MEMCACHED_MEMORY_LIMIT, MEMCACHED_CONNECTIONS, MEMCACHED_THREADS, etc.
++ *
++ * - Flags without values (e.g., -S, -C, -A) are toggled by simply setting
++ *   their corresponding MEMCACHED_* variables to any non-empty value.
++ *
++ * - The extended -o options (for TLS, extstore, etc.) are automatically bundled
++ *   into a comma-separated list built from MEMCACHED_* variables like:
++ *     MEMCACHED_TLS_CERT → -o ssl_chain_cert=...
++ *     MEMCACHED_EXTSTORE_PATH → -o ext_path=...
++ *
++ * - Verbosity is handled by setting MEMCACHED_VERBOSE to an integer (e.g., 3 for -vvv).
++ *
++ * - MEMCACHED_ARGS can be used to fully override automatic injection by specifying
++ *   raw CLI arguments directly (e.g., "memcached -m 64 -t 2").
++ *
++ * - The behavior is gated by compile-time and build-time flags such as ENABLE_SASL,
++ *   TLS, EXTSTORE, and MEMCACHED_BUILD_* to ensure only valid options are passed.
++ *
++ * This is the default configuration method for container builds using ENABLE_CONTAINER.
++ */
++enum feature_type {
++    FEATURE_NONE        = 0,
++    FEATURE_SASL        = 1 << 0,
++    FEATURE_TLS         = 1 << 1,
++    FEATURE_EXTSTORE    = 1 << 2,
++    FEATURE_UNIX_SOCKET = 1 << 3,
++    FEATURE_CONTAINER   = 1 << 4
++};
++
++struct envopt {
++    const char *env;
++    const char *flag;
++    int expects_value;
++};
++
++struct extendedopt {
++    const char *env;
++    const char *key;
++    int expects_value;
++};
++
++static const struct envopt envopts[] = {
++    {"MEMCACHED_MEMORY_LIMIT", "-m", 1},
++    {"MEMCACHED_CONNECTIONS", "-c", 1},
++    {"MEMCACHED_THREADS", "-t", 1},
++    {"MEMCACHED_PROTOCOL", "-B", 1},
++    {"MEMCACHED_REQS_PER_EVENT", "-R", 1},
++    {"MEMCACHED_FACTOR", "-f", 1},
++    {"MEMCACHED_MAX_ITEM_SIZE", "-I", 1},
++    {"MEMCACHED_MIN_ITEM_SIZE", "-n", 1},
++    {"MEMCACHED_LISTEN_BACKLOG", "-b", 1},
++    {"MEMCACHED_KEY_DELIMITER", "-D", 1},
++    {"MEMCACHED_ALLOW_SHUTDOWN", "-A", 0},
++    {"MEMCACHED_DISABLE_CAS", "-C", 0},
++    {"MEMCACHED_LOCK_PAGES", "-k", 0},
++    {"MEMCACHED_ENABLE_COREDUMPS", "-r", 0},
++    {"MEMCACHED_ENABLE_LARGEPAGES", "-L", 0},
++    {"MEMCACHED_DISABLE_FLUSH_ALL", "-F", 0},
++    {"MEMCACHED_DISABLE_DUMPING", "-X", 0},
++    {"MEMCACHED_DISABLE_WATCH", "-W", 0},
++    {"MEMCACHED_VERBOSE", "-v", 1},
++#ifdef ENABLE_SASL
++    {"MEMCACHED_SASL", "-S", 0},
++#endif
++#ifdef TLS
++    {"MEMCACHED_TLS", "-Z", 0},
++#endif
++    {NULL, NULL, 0}
++};
++
++static const struct extendedopt extendedopts[] = {
++#ifdef TLS
++    {"MEMCACHED_TLS_CERT", "ssl_chain_cert", 1},
++    {"MEMCACHED_TLS_KEY", "ssl_key", 1},
++    {"MEMCACHED_TLS_CA", "ssl_ca_cert", 1},
++    {"MEMCACHED_TLS_VERIFY_MODE", "ssl_verify_mode", 1},
++#endif
++#ifdef EXTSTORE
++    {"MEMCACHED_EXTSTORE_PATH", "ext_path", 1},
++    {"MEMCACHED_EXTSTORE_PAGE_SIZE", "ext_page_size", 1},
++    {"MEMCACHED_EXTSTORE_WBUF_SIZE", "ext_wbuf_size", 1},
++    {"MEMCACHED_EXTSTORE_THREADS", "ext_threads", 1},
++    {"MEMCACHED_EXTSTORE_ITEM_SIZE", "ext_item_size", 1},
++    {"MEMCACHED_EXTSTORE_ITEM_AGE", "ext_item_age", 1},
++    {"MEMCACHED_EXTSTORE_LOW_TTL", "ext_low_ttl", 1},
++    {"MEMCACHED_EXTSTORE_DROP_UNREAD", "ext_drop_unread", 0},
++    {"MEMCACHED_EXTSTORE_RECACHE_RATE", "ext_recache_rate", 1},
++    {"MEMCACHED_EXTSTORE_COMPACT_UNDER", "ext_compact_under", 1},
++    {"MEMCACHED_EXTSTORE_DROP_UNDER", "ext_drop_under", 1},
++    {"MEMCACHED_EXTSTORE_MAX_FRAG", "ext_max_frag", 1},
++    {"MEMCACHED_EXTSTORE_MAX_SLEEP", "ext_max_sleep", 1},
++#endif
++    {"MEMCACHED_SLAB_AUTOMOVE_FREERATIO", "slab_automove_freeratio", 1},
++    {"MEMCACHED_NAPI_IDS", "napi_ids", 1},
++    {NULL, NULL, 0}
++};
++
++void inject_env_args(int *argc, char ***argv) {
++    const char *manual_args = getenv("MEMCACHED_ARGS");
++    if (manual_args && *manual_args) {
++        static char *manual_argv[128];
++        int idx = 0;
++        manual_argv[idx++] = (*argv)[0];
++        char *args = strdup(manual_args);
++        char *tok = strtok(args, " ");
++        while (tok && idx < 127) {
++            manual_argv[idx++] = tok;
++            tok = strtok(NULL, " ");
++        }
++        manual_argv[idx] = NULL;
++        *argc = idx;
++        *argv = manual_argv;
++        return;
++    }
++
++    static char *new_argv[256];
++    int extra = 0;
++    new_argv[extra++] = (*argv)[0];
++
++    for (int i = 0; envopts[i].env; i++) {
++        const char *val = getenv(envopts[i].env);
++        if (!val) continue;
++
++        if (strcmp(envopts[i].flag, "-v") == 0) {
++            int level = atoi(val);
++            for (int v = 0; v < level && v < 10; v++)
++                new_argv[extra++] = strdup("-v");
++            continue;
++        }
++
++        new_argv[extra++] = strdup(envopts[i].flag);
++        if (envopts[i].expects_value)
++            new_argv[extra++] = strdup(val);
++    }
++
++    char extended_buf[2048] = {0};
++    for (int i = 0; extendedopts[i].env; i++) {
++        const char *val = getenv(extendedopts[i].env);
++        if (!val) continue;
++
++        strcat(extended_buf, extendedopts[i].key);
++        if (extendedopts[i].expects_value) {
++            strcat(extended_buf, "=");
++            strcat(extended_buf, val);
++        }
++        strcat(extended_buf, ",");
++    }
++
++    if (extended_buf[0]) {
++        size_t len = strlen(extended_buf);
++        if (extended_buf[len - 1] == ',') extended_buf[len - 1] = '\0';
++        new_argv[extra++] = strdup("-o");
++        new_argv[extra++] = strdup(extended_buf);
++    }
++
++    for (int i = 1; i < *argc && extra < 254; i++) {
++        new_argv[extra++] = (*argv)[i];
++    }
++
++    new_argv[extra] = NULL;
++    *argc = extra;
++    *argv = new_argv;
++}
++
+ /*
+  * given time value that's either unix time or delta from current unix time, return
+  * unix time. Use the fact that delta can't exceed one month (and real time value can't
+@@ -4843,6 +5016,11 @@
+         return EX_OSERR;
+     }
+ 
++    /* Handle environment vriables as arguments. */
++#ifdef ENABLE_CONTAINER
++    inject_env_args(argc, argv);
++#endif
++
+     /* handle SIGINT, SIGTERM */
+     signal(SIGINT, sig_handler);
+     signal(SIGTERM, sig_handler);
