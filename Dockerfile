@@ -193,7 +193,7 @@ ARG CFLAGS LDFLAGS CPPFLAGS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
 WORKDIR /build/memcached-${MEMCACHED_VERSION}
-RUN ./configure \
+RUN ./configure CFLAGS="-DENABLE_CONTAINER ${CFLAGS}" \
         --disable-sasl \
         --disable-extstore \
         --disable-docs \
@@ -215,7 +215,7 @@ ARG CFLAGS LDFLAGS CPPFLAGS
 ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
 WORKDIR /build/memcached-${MEMCACHED_VERSION}
-RUN ./configure \
+RUN ./configure CFLAGS="-DENABLE_CONTAINER ${CFLAGS}" \
         --with-libevent=/usr \
         --disable-sasl \
         --disable-docs \
@@ -237,7 +237,7 @@ ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
 # Memcached (only the daemon, patched for OpenSSL3)
 WORKDIR /build/memcached-${MEMCACHED_VERSION}
-RUN LIBS="-lcrypto -lssl" ./configure \
+RUN LIBS="-lcrypto -lssl" ./configure CFLAGS="-DENABLE_CONTAINER ${CFLAGS}" \
         --with-libevent=/usr \
         --disable-docs \
         --disable-dtrace \
@@ -257,7 +257,7 @@ ENV CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" CPPFLAGS="${CPPFLAGS}"
 
 # Cyrus-SASL (static only, patched headers)
 WORKDIR /build/cyrus-sasl-${SASL_VERSION}
-RUN LIBS="-lcrypto" ./configure \
+RUN LIBS="-lcrypto -lssl" ./configure CFLAGS="-DENABLE_CONTAINER ${CFLAGS}" \
         --with-openssl=/usr \
         --prefix=/usr \
         --sysconfdir=/etc/sasl2 \
