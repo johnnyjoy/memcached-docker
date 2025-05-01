@@ -24,9 +24,6 @@
 
 ---
 
-This aims to sound **sharp and purposeful** (like what Alpine and Distroless aim for) and explains both *what it is* and *why it exists*. Do you want to highlight any **specific use case** (like Kubernetes or serverless) more prominently too?
----
-
 ## 📌 Purpose
 
 **Purpose:** This project’s core mission is to **shrink Memcached as much as possible** while keeping it **fast, secure, and flexible**—ideal for cloud, edge, and microservice environments.
