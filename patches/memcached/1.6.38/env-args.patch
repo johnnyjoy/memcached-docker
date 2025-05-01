@@ -1,5 +1,5 @@
 --- memcached.c.orig	2025-04-24 14:38:45.912822441 -0400
-+++ memcached.c	2025-04-30 12:17:45.066971406 -0400
++++ memcached.c	2025-05-01 17:27:43.493490304 -0400
 @@ -166,6 +166,179 @@
      }
  }
@@ -186,7 +186,7 @@
  
 +    /* Handle environment vriables as arguments. */
 +#ifdef ENABLE_CONTAINER
-+    inject_env_args(argc, argv);
++    inject_env_args(&argc, &argv);
 +#endif
 +
      /* handle SIGINT, SIGTERM */
