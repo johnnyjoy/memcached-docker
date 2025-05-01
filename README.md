@@ -155,48 +155,50 @@ Customizable with:
 
 ## 📊 Environment Variables Overview
 
-| **Variable**                                | **Description**                                               | `micro` | `slim` | `tls` | `full` |
-|---------------------------------------------|---------------------------------------------------------------|---------|--------|--------|---------|
-| MEMCACHED_MEMORY_LIMIT                      | Memory limit (MB)                                             | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_CONNECTIONS                       | Max simultaneous connections                                  | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_THREADS                           | Number of worker threads                                      | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_PROTOCOL                          | Protocol (ascii, binary, auto)                                | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_REQS_PER_EVENT                    | Max requests per event                                        | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_FACTOR                            | Slab growth factor                                            | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_MAX_ITEM_SIZE                     | Max item size                                                 | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_MIN_ITEM_SIZE                     | Min item size                                                 | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_LISTEN_BACKLOG                    | Listen backlog size                                          | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_KEY_DELIMITER                     | Key delimiter character                                       | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_ALLOW_SHUTDOWN                    | Enable ASCII shutdown command                                 | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_DISABLE_CAS                       | Disable CAS                                                  | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_LOCK_PAGES                        | Lock paged memory                                             | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_ENABLE_COREDUMPS                  | Enable coredumps                                              | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_ENABLE_LARGEPAGES                 | Enable large pages                                            | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_DISABLE_FLUSH_ALL                 | Disable flush_all command                                     | ❌       | ✅      | ✅      | ✅       |
-| MEMCACHED_DISABLE_DUMPING                   | Disable stats cachedump/lru_crawler metadump                  | ❌       | ✅      | ✅      | ✅       |
-| MEMCACHED_DISABLE_WATCH                     | Disable watch commands                                        | ❌       | ✅      | ✅      | ✅       |
-| MEMCACHED_VERBOSE                           | Verbosity level                                              | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_SASL                              | Enable SASL authentication                                    | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_TLS                               | Enable TLS                                                   | ❌       | ❌      | ✅      | ✅       |
-| MEMCACHED_TLS_CERT                          | TLS certificate path                                          | ❌       | ❌      | ✅      | ✅       |
-| MEMCACHED_TLS_KEY                           | TLS key path                                                  | ❌       | ❌      | ✅      | ✅       |
-| MEMCACHED_TLS_CA                            | TLS CA certificate path                                       | ❌       | ❌      | ✅      | ✅       |
-| MEMCACHED_TLS_VERIFY_MODE                   | TLS verify mode                                              | ❌       | ❌      | ✅      | ✅       |
-| MEMCACHED_EXTSTORE_PATH                     | Extstore path + size                                          | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_PAGE_SIZE                | Extstore page size                                           | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_WBUF_SIZE                | Extstore write buffer size                                    | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_THREADS                  | Extstore thread count                                         | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_ITEM_SIZE                | Extstore item size                                           | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_ITEM_AGE                 | Extstore item age                                            | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_LOW_TTL                  | Extstore low TTL                                             | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_DROP_UNREAD              | Extstore drop unread flag                                     | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_RECACHE_RATE             | Extstore recache rate                                        | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_COMPACT_UNDER            | Extstore compact threshold                                    | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_DROP_UNDER               | Extstore drop threshold                                       | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_MAX_FRAG                 | Extstore max fragmentation                                   | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_EXTSTORE_MAX_SLEEP                | Extstore max sleep time                                       | ❌       | ❌      | ❌      | ✅       |
-| MEMCACHED_SLAB_AUTOMOVE_FREERATIO           | Slab automove freeratio                                      | ✅       | ✅      | ✅      | ✅       |
-| MEMCACHED_NAPI_IDS                          | NAPI IDs                                                     | ✅       | ✅      | ✅      | ✅       |
+| **Variable**                                | **Description**                                               | micro | slim | tls | full |
+|---------------------------------------------|---------------------------------------------------------------|--------|-------|-------|--------|
+| MEMCACHED_MEMORY_LIMIT                      | Memory limit (MB)                                             | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_CONNECTIONS                       | Max simultaneous connections                                  | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_THREADS                           | Number of worker threads                                      | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_PROTOCOL                          | Protocol (ascii, binary, auto)                                | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_REQS_PER_EVENT                    | Max requests per event                                        | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_FACTOR                            | Slab growth factor                                            | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_MAX_ITEM_SIZE                     | Max item size                                                 | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_MIN_ITEM_SIZE                     | Min item size                                                 | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_LISTEN_BACKLOG                    | Listen backlog size                                           | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_KEY_DELIMITER                     | Key delimiter character                                       | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_ALLOW_SHUTDOWN                    | Enable ASCII shutdown command                                 | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_DISABLE_CAS                       | Disable CAS                                                   | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_LOCK_PAGES                        | Lock paged memory                                             | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_ENABLE_COREDUMPS                  | Enable coredumps                                              | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_ENABLE_LARGEPAGES                 | Enable large pages                                            | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_DISABLE_FLUSH_ALL                 | Disable flush_all command                                     | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_DISABLE_DUMPING                   | Disable stats cachedump/lru_crawler metadump                  | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_DISABLE_WATCH                     | Disable watch commands                                        | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_VERBOSE                           | Verbosity level                                               | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_SASL                              | Enable SASL authentication                                    | ❌     | ❌    | ❌    | ✅      |
+| MEMCACHED_TLS                               | Enable TLS                                                    | ❌     | ❌    | ✅    | ✅      |
+| MEMCACHED_TLS_CERT                          | TLS certificate path                                          | ❌     | ❌    | ✅    | ✅      |
+| MEMCACHED_TLS_KEY                           | TLS key path                                                  | ❌     | ❌    | ✅    | ✅      |
+| MEMCACHED_TLS_CA                            | TLS CA certificate path                                       | ❌     | ❌    | ✅    | ✅      |
+| MEMCACHED_TLS_VERIFY_MODE                   | TLS verify mode                                               | ❌     | ❌    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_PATH                     | Extstore path + size                                          | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_PAGE_SIZE                | Extstore page size                                            | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_WBUF_SIZE                | Extstore write buffer size                                    | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_THREADS                  | Extstore thread count                                         | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_ITEM_SIZE                | Extstore item size                                            | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_ITEM_AGE                 | Extstore item age                                             | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_LOW_TTL                  | Extstore low TTL                                              | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_DROP_UNREAD              | Extstore drop unread flag                                     | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_RECACHE_RATE             | Extstore recache rate                                         | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_COMPACT_UNDER            | Extstore compact threshold                                    | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_DROP_UNDER               | Extstore drop threshold                                       | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_MAX_FRAG                 | Extstore max fragmentation                                    | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_EXTSTORE_MAX_SLEEP                | Extstore max sleep time                                       | ❌     | ✅    | ✅    | ✅      |
+| MEMCACHED_SLAB_AUTOMOVE_FREERATIO           | Slab automove freeratio                                       | ✅     | ✅    | ✅    | ✅      |
+| MEMCACHED_NAPI_IDS                          | NAPI IDs                                                      | ✅     | ✅    | ✅    | ✅      |
+
+---
 
 This table lists **all supported environment variables**, with checkmarks showing which variants implement each. Memcached maps them automatically if the feature is available.
 
